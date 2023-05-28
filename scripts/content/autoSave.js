@@ -254,7 +254,7 @@ function refreshConversations(conversations) {
     }
   }
 }
-function outOfSyncConversations(localConvs, remoteConvs) {
+function inSyncConversations(localConvs, remoteConvs) {
   return Object.keys(localConvs).filter(
     (id) => !localConvs[id].archived
       && localConvs[id].current_node
@@ -372,7 +372,7 @@ function initializeAutoSave(skipInputFormReload = false, forceRefreshIds = []) {
             }
             const allVisibleConversationsOrderIds = newConversationsOrder.filter((conv) => conv.id !== 'trash').map((conv) => (typeof conv === 'object' ? conv.conversationIds : conv)).flat();
 
-            if (remoteConvIds.length > 0 && remoteConvIds.length - outOfSyncConversations(localConversations, remoteConversations).length > 3) {
+            if (remoteConvIds.length > 0 && remoteConvIds.length - inSyncConversations(localConversations, remoteConversations).length > 3) {
               initializeCopyAndCounter();
               initializeAddToPromptLibrary();
               initializeTimestamp();
@@ -403,16 +403,16 @@ function initializeAutoSave(skipInputFormReload = false, forceRefreshIds = []) {
                 || localConversations[remoteConvIds[i]]?.shouldRefresh
                 || !localConversations[remoteConvIds[i]].id
                 || !localConversations[remoteConvIds[i]].create_time
-                || !localConversations[remoteConvIds[i]].current_node
-                || localConversations[remoteConvIds[i]].update_time !== new Date(remoteConversations[i].update_time).getTime() / 1000
+                || (remoteConversations[i].current_node && !localConversations[remoteConvIds[i]].current_node)
+                || (remoteConversations[i].update_time && localConversations[remoteConvIds[i]].update_time !== new Date(remoteConversations[i].update_time).getTime() / 1000)
                 // || (localConversations[remoteConvIds[i]].mapping[localConversations[remoteConvIds[i]].current_node].message.metadata.model_slug.includes('plugins') && typeof localConversations[remoteConvIds[i]].plugin_ids === 'undefined')
               ) {
                 await addConversationToStorage(remoteConversations[i]);
-                if (remoteConvIds.length - outOfSyncConversations(localConversations, remoteConversations).length > 3) {
+                if (remoteConvIds.length - inSyncConversations(localConversations, remoteConversations).length > 3) {
                   const progressLabel = document.getElementById('sync-progresslabel');
                   if (progressLabel) {
                     // eslint-disable-next-line no-loop-func
-                    progressLabel.innerText = `Syncing(${outOfSyncConversations(localConversations, remoteConversations).length}/${remoteConvIds.length})`;
+                    progressLabel.innerText = `Syncing(${inSyncConversations(localConversations, remoteConversations).length}/${remoteConvIds.length})`;
                     addSyncBanner();
                   }
                   await autoSaveCountDownAsync(isPaid);
